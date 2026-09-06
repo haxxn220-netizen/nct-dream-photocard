@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NCT DREAM Photocard List</title>
+<style>
+:root{
+  --accent:#E4E4E4;
+  --text:#444;
+  --muted:#888;
+  --line:#E4E4E4;
+  --bg:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
+header{background:#fff;padding:34px 18px 26px;border-bottom:1px solid var(--line)}
+.wrap{max-width:1120px;margin:auto}
+h1{margin:0;font-size:24px;font-weight:600;letter-spacing:.3px;color:#555}
+h1 span{color:inherit}
+.subtitle{margin-top:7px;color:#999;font-size:12px;letter-spacing:.4px}
+.stats{margin-top:22px;padding:14px 0;font-size:14px;font-weight:500;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.progress{height:3px;background:#f3f3f3;margin-top:12px;overflow:hidden}
+.progress>div{height:100%;background:#bdbdbd;width:0%;transition:.2s}
+main{padding:28px 16px 100px}
+.tabs,.type-tabs{display:flex;gap:0;flex-wrap:wrap}
+.tabs{border-bottom:1px solid var(--line);margin-bottom:0}
+.type-tabs{border-bottom:1px solid var(--line);margin-bottom:26px}
+.tab,.type-tab{
+  border:0;background:transparent;padding:11px 15px;cursor:pointer;
+  font-size:13px;font-weight:500;color:#999;position:relative
+}
+.tab:not(:last-child):after,.type-tab:not(:last-child):after{
+  content:"";position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:1px;height:13px;background:var(--line)
+}
+.tab.active,.type-tab.active{color:#444;font-weight:700}
+.tab.active:before,.type-tab.active:before{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#aaa
+}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:24px 18px}
+.card{background:transparent;overflow:hidden}
+.photo{aspect-ratio:2.5/3.5;background:#f4f4f4;overflow:hidden;cursor:pointer}
+.photo img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s}
+.card.owned .photo img{filter:none;opacity:.42}
+.info{padding:9px 1px 0}
+.name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:11px;color:var(--muted);margin-top:4px}
+.actions{display:flex;gap:10px;margin-top:9px}
+.actions button{border:0;background:none;padding:0;cursor:pointer;font-size:11px;color:#999}
+.actions button:hover{color:#555}
+.empty{grid-column:1/-1;text-align:center;padding:80px 20px;color:#aaa;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.fab{
+ position:fixed;right:24px;bottom:24px;border:1px solid var(--line);
+ background:#fff;color:#555;font-size:14px;font-weight:600;
+ padding:13px 18px;cursor:pointer
+}
+.modal{display:none;position:fixed;inset:0;background:#0005;z-index:20;align-items:center;justify-content:center;padding:18px}
+.modal.show{display:flex}
+.dialog{background:#fff;width:min(470px,100%);padding:26px;max-height:90vh;overflow:auto}
+.dialog h2{margin:0 0 18px;font-size:20px;font-weight:600;color:#555}
+label{display:block;font-size:12px;font-weight:600;margin-top:15px;margin-bottom:7px;color:#666}
+input,select{width:100%;padding:11px;border:1px solid var(--line);font:inherit;background:#fff;color:#555}
+.preview{margin-top:10px;width:100%;max-height:240px;object-fit:contain;background:#f5f5f5;display:none}
+.modal-actions{display:flex;gap:8px;margin-top:22px}
+.modal-actions button{flex:1;padding:12px;border:1px solid var(--line);font-weight:600;cursor:pointer;background:#fff;color:#666}
+.modal-actions .save{background:#E4E4E4;border-color:#E4E4E4;color:#555}
+@media(max-width:500px){
+ h1{font-size:21px}
+ .grid{grid-template-columns:repeat(2,1fr);gap:20px 12px}
+ .tab,.type-tab{padding:10px 11px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap">
+  <h1>NCT <span>DREAM</span> PHOTOCARD LIST</h1>
+  <div class="subtitle">MY DREAM PHOTOCARD COLLECTION 💚</div>
+  <div class="stats">
+   <div id="statsText">전체 0장 중 0장 보유 · 0%</div>
+   <div class="progress"><div id="progressBar"></div></div>
+  </div>
+ </div>
+</header>
+
+<main class="wrap">
+ <div class="tabs" id="memberTabs"></div>
+ <div class="type-tabs" id="typeTabs">
+   <button class="type-tab active" data-type="전체">전체</button>
+   <button class="type-tab" data-type="앨범">앨범</button>
+   <button class="type-tab" data-type="특전">특전</button>
+   <button class="type-tab" data-type="팬싸">팬싸</button>
+   <button class="type-tab" data-type="시즌그리팅">시즌그리팅</button>
+   <button class="type-tab" data-type="팬미팅">팬미팅</button>
+   <button class="type-tab" data-type="콘서트">콘서트</button>
+   <button class="type-tab" data-type="MD">MD</button>
+   <button class="type-tab" data-type="콜라보">콜라보</button>
+   <button class="type-tab" data-type="팬클럽">팬클럽</button>
+   <button class="type-tab" data-type="기타">기타</button>
+ </div>
+ <div class="grid" id="grid"></div>
+</main>
+
+<button class="fab" id="addBtn">＋ 포카 추가</button>
+
+<div class="modal" id="modal">
+ <div class="dialog">
+  <h2 id="modalTitle">포카 추가</h2>
+  <label>포카 사진</label>
+  <input type="file" id="photoInput" accept="image/*">
+  <img id="preview" class="preview">
+  <label>포카 이름</label>
+  <input id="nameInput" placeholder="예: 마크 ISTJ A ver.">
+  <label>멤버</label>
+  <select id="memberInput"></select>
+  <label>종류</label>
+  <select id="typeInput"><option>앨범</option><option>특전</option><option>팬싸</option><option>시즌그리팅</option><option>팬미팅</option><option>콘서트</option><option>MD</option><option>콜라보</option><option>팬클럽</option><option>기타</option></select>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:16px"><input style="width:auto" type="checkbox" id="ownedInput"> 이미 보유 중</label>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input style="width:auto" type="checkbox" id="batchInput"> 같은 정보로 여러 장 추가하기</label>
+  <div id="batchCountWrap" style="display:none"><label>추가할 개수 (최대 10개)</label><input type="number" id="batchCount" min="1" max="10" value="1"></div>
+  <div class="modal-actions">
+   <button class="cancel" id="cancelBtn">취소</button>
+   <button class="save" id="saveBtn">저장하기</button>
+  </div>
+ </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  writeBatch
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAE1TKrpYQnI0bgy3B6Wl6FKgyWTj57L",
+  authDomain: "nct-dream-photocard.firebaseapp.com",
+  projectId: "nct-dream-photocard",
+  storageBucket: "nct-dream-photocard.firebasestorage.app",
+  messagingSenderId: "529092342657",
+  appId: "1:529092342657:web:700e30a224c0782c18ae80",
+  measurementId: "G-N8Z78M1N7Q"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const cardsRef = collection(db, "photocards");
+
+const MEMBERS=["전체","마크","런쥔","제노","해찬","재민","천러","지성"];
+let cards=[];
+let member="전체", type="전체", editingId=null, pendingImage=null;
+
+const grid=document.getElementById("grid");
+const memberTabs=document.getElementById("memberTabs");
+const statsText=document.getElementById("statsText");
+const progressBar=document.getElementById("progressBar");
+const modal=document.getElementById("modal");
+const memberInput=document.getElementById("memberInput");
+const typeInput=document.getElementById("typeInput");
+const nameInput=document.getElementById("nameInput");
+const ownedInput=document.getElementById("ownedInput");
+const batchInput=document.getElementById("batchInput");
+const batchCount=document.getElementById("batchCount");
+const batchCountWrap=document.getElementById("batchCountWrap");
+const photoInput=document.getElementById("photoInput");
+const preview=document.getElementById("preview");
+const modalTitle=document.getElementById("modalTitle");
+const addBtn=document.getElementById("addBtn");
+const cancelBtn=document.getElementById("cancelBtn");
+const saveBtn=document.getElementById("saveBtn");
+
+MEMBERS.forEach(m=>{
+  const b=document.createElement("button");
+  b.className="tab"+(m==="전체"?" active":"");
+  b.textContent=m;
+  b.onclick=()=>{
+    member=m;
+    [...memberTabs.children].forEach(x=>x.classList.toggle("active",x.textContent===m));
+    render();
+  };
+  memberTabs.appendChild(b);
+});
+
+["마크","런쥔","제노","해찬","재민","천러","지성"].forEach(m=>{
+  const o=document.createElement("option");
+  o.textContent=m;
+  memberInput.appendChild(o);
+});
+
+document.querySelectorAll(".type-tab").forEach(b=>b.onclick=()=>{
+  type=b.dataset.type;
+  document.querySelectorAll(".type-tab").forEach(x=>x.classList.toggle("active",x===b));
+  render();
+});
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+
+// 포카 사진을 작게 압축해서 Firestore 문서 용량을 줄임
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxW=700, maxH=980;
+        let w=img.naturalWidth, h=img.naturalHeight;
+        const scale=Math.min(1,maxW/w,maxH/h);
+        w=Math.round(w*scale);
+        h=Math.round(h*scale);
+
+        const canvas=document.createElement("canvas");
+        canvas.width=w;
+        canvas.height=h;
+        const ctx=canvas.getContext("2d");
+        ctx.drawImage(img,0,0,w,h);
+
+        resolve(canvas.toDataURL("image/jpeg",0.68));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function render(){
+  const filtered=cards.filter(c=>
+    (member==="전체"||c.member===member) &&
+    (type==="전체"||c.type===type)
+  );
+
+  const total=cards.length;
+  const owned=cards.filter(c=>c.owned).length;
+  const pct=total?Math.round(owned/total*100):0;
+
+  statsText.textContent=`전체 ${total}장 중 ${owned}장 보유 · ${pct}%`;
+  progressBar.style.width=pct+"%";
+  grid.innerHTML="";
+
+  if(!filtered.length){
+    grid.innerHTML='<div class="empty">아직 등록된 포카가 없어요!<br><br>오른쪽 아래의 <b>＋ 포카 추가</b> 버튼으로 시작해보세요 💚</div>';
+    return;
+  }
+
+  filtered.forEach(c=>{
+    const el=document.createElement("article");
+    el.className="card"+(c.owned?" owned":"");
+
+    el.innerHTML=`
+      <div class="photo">
+        <img src="${c.image}" alt="${escapeHtml(c.name)}">
+      </div>
+      <div class="info">
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="meta">${escapeHtml(c.member)} · ${escapeHtml(c.type)}</div>
+        <div class="actions">
+          <button class="edit">수정</button>
+          <button class="delete">삭제</button>
+        </div>
+      </div>`;
+
+    el.querySelector(".photo").onclick=async()=>{
+      try{
+        await updateDoc(doc(db,"photocards",c.id),{owned:!c.owned});
+      }catch(err){
+        console.error(err);
+        alert("보유 상태 저장에 실패했어요.");
+      }
+    };
+
+    el.querySelector(".edit").onclick=()=>openModal(c);
+
+    el.querySelector(".delete").onclick=async()=>{
+      if(!confirm("이 포카를 삭제할까요?")) return;
+      try{
+        await deleteDoc(doc(db,"photocards",c.id));
+      }catch(err){
+        console.error(err);
+        alert("삭제에 실패했어요.");
+      }
+    };
+
+    grid.appendChild(el);
+  });
+}
+
+function openModal(card=null){
+  editingId=card?.id||null;
+  pendingImage=card?.image||null;
+
+  modal.classList.add("show");
+  modalTitle.textContent=card?"포카 수정":"포카 추가";
+  nameInput.value=card?.name||"";
+  memberInput.value=card?.member||"마크";
+  typeInput.value=card?.type||"앨범";
+  ownedInput.checked=card?.owned||false;
+
+  photoInput.value="";
+  batchInput.checked=false;
+  batchCount.value=1;
+  batchCountWrap.style.display="none";
+
+  preview.src=pendingImage||"";
+  preview.style.display=pendingImage?"block":"none";
+}
+
+addBtn.onclick=()=>openModal();
+cancelBtn.onclick=()=>modal.classList.remove("show");
+
+batchInput.onchange=()=>{
+  batchCountWrap.style.display=batchInput.checked?"block":"none";
+};
+
+photoInput.onchange=async()=>{
+  const file=photoInput.files[0];
+  if(!file) return;
+
+  try{
+    pendingImage=await compressImage(file);
+    preview.src=pendingImage;
+    preview.style.display="block";
+  }catch(err){
+    console.error(err);
+    alert("사진을 불러오지 못했어요.");
+  }
+};
+
+saveBtn.onclick=async()=>{
+  const name=nameInput.value.trim();
+
+  if(!name){
+    alert("포카 이름을 입력해주세요!");
+    return;
+  }
+  if(!pendingImage){
+    alert("포카 사진을 등록해주세요!");
+    return;
+  }
+
+  saveBtn.disabled=true;
+  saveBtn.textContent="저장 중...";
+
+  try{
+    if(editingId){
+      await updateDoc(doc(db,"photocards",editingId),{
+        name,
+        member:memberInput.value,
+        type:typeInput.value,
+        owned:ownedInput.checked,
+        image:pendingImage
+      });
+    }else{
+      const count=batchInput.checked
+        ? Math.min(10,Math.max(1,Number(batchCount.value)||1))
+        : 1;
+
+      const batch=writeBatch(db);
+
+      for(let i=0;i<count;i++){
+        const newRef=doc(cardsRef);
+        batch.set(newRef,{
+          name:count>1?`${name} ${i+1}`:name,
+          member:memberInput.value,
+          type:typeInput.value,
+          owned:ownedInput.checked,
+          image:pendingImage,
+          createdAt:Date.now()+i
+        });
+      }
+
+      await batch.commit();
+    }
+
+    modal.classList.remove("show");
+  }catch(err){
+    console.error(err);
+    alert("저장에 실패했어요. Firebase 설정이나 인터넷 연결을 확인해주세요.");
+  }finally{
+    saveBtn.disabled=false;
+    saveBtn.textContent="저장하기";
+  }
+};
+
+modal.onclick=e=>{
+  if(e.target===modal) modal.classList.remove("show");
+};
+
+// Firebase의 photocards 컬렉션이 바뀌면 앱 화면도 자동으로 갱신
+onSnapshot(cardsRef, snapshot=>{
+  cards=snapshot.docs.map(d=>({id:d.id,...d.data()}));
+  cards.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  render();
+}, err=>{
+  console.error(err);
+  grid.innerHTML='<div class="empty">Firebase 연결에 실패했어요.<br><br>Firestore 보안 규칙과 인터넷 연결을 확인해주세요.</div>';
+});
+</script>
+</body>
+</html>

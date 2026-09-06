@@ -25,7 +25,12 @@ h1 span{color:inherit}
 main{padding:28px 16px 100px}
 .tabs,.type-tabs{display:flex;gap:0;flex-wrap:wrap}
 .tabs{border-bottom:1px solid var(--line);margin-bottom:0}
-.type-tabs{border-bottom:1px solid var(--line);margin-bottom:26px}
+.type-tabs{border-bottom:1px solid var(--line);margin-bottom:18px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:26px}
+.controls label{margin:0;font-size:12px;color:#888;font-weight:500}
+.controls select{width:auto;min-width:150px;padding:9px 11px;font-size:12px}
+.album-filter{display:none}
+.album-filter.show{display:flex;align-items:center;gap:8px}
 .tab,.type-tab{
   border:0;background:transparent;padding:11px 15px;cursor:pointer;
   font-size:13px;font-weight:500;color:#999;position:relative
@@ -99,6 +104,19 @@ input,select{width:100%;padding:11px;border:1px solid var(--line);font:inherit;b
    <button class="type-tab" data-type="팬클럽">팬클럽</button>
    <button class="type-tab" data-type="기타">기타</button>
  </div>
+ <div class="controls">
+   <div class="album-filter" id="albumFilterWrap">
+     <label for="albumFilter">앨범</label>
+     <select id="albumFilter"><option value="전체">전체 앨범</option></select>
+   </div>
+   <label for="sortSelect">정렬</label>
+   <select id="sortSelect">
+     <option value="added-desc">추가순 ↓</option>
+     <option value="added-asc">추가순 ↑</option>
+     <option value="release-asc">날짜순 ↑</option>
+     <option value="release-desc">날짜순 ↓</option>
+   </select>
+ </div>
  <div class="grid" id="grid"></div>
 </main>
 
@@ -116,6 +134,10 @@ input,select{width:100%;padding:11px;border:1px solid var(--line);font:inherit;b
   <select id="memberInput"></select>
   <label>종류</label>
   <select id="typeInput"><option>앨범</option><option>특전</option><option>팬싸</option><option>시즌그리팅</option><option>팬미팅</option><option>콘서트</option><option>MD</option><option>콜라보</option><option>팬클럽</option><option>기타</option></select>
+  <label>앨범명 / 작품명 <span style="font-weight:400;color:#aaa">(앨범 포카일 때)</span></label>
+  <input id="albumInput" placeholder="예: DREAM( )SCAPE">
+  <label>발매 날짜</label>
+  <input id="releaseDateInput" type="date">
   <label style="display:flex;align-items:center;gap:8px;margin-top:16px"><input style="width:auto" type="checkbox" id="ownedInput"> 이미 보유 중</label>
   <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input style="width:auto" type="checkbox" id="batchInput"> 같은 정보로 여러 장 추가하기</label>
   <div id="batchCountWrap" style="display:none"><label>추가할 개수 (최대 10개)</label><input type="number" id="batchCount" min="1" max="10" value="1"></div>
@@ -155,7 +177,7 @@ const cardsRef = collection(db, "photocards");
 
 const MEMBERS=["전체","마크","런쥔","제노","해찬","재민","천러","지성"];
 let cards=[];
-let member="전체", type="전체", editingId=null, pendingImage=null;
+let member="전체", type="전체", album="전체", sortMode="added-desc", editingId=null, pendingImage=null;
 
 const grid=document.getElementById("grid");
 const memberTabs=document.getElementById("memberTabs");
@@ -164,6 +186,11 @@ const progressBar=document.getElementById("progressBar");
 const modal=document.getElementById("modal");
 const memberInput=document.getElementById("memberInput");
 const typeInput=document.getElementById("typeInput");
+const albumInput=document.getElementById("albumInput");
+const releaseDateInput=document.getElementById("releaseDateInput");
+const albumFilterWrap=document.getElementById("albumFilterWrap");
+const albumFilter=document.getElementById("albumFilter");
+const sortSelect=document.getElementById("sortSelect");
 const nameInput=document.getElementById("nameInput");
 const ownedInput=document.getElementById("ownedInput");
 const batchInput=document.getElementById("batchInput");
@@ -196,9 +223,21 @@ MEMBERS.forEach(m=>{
 
 document.querySelectorAll(".type-tab").forEach(b=>b.onclick=()=>{
   type=b.dataset.type;
+  album="전체";
   document.querySelectorAll(".type-tab").forEach(x=>x.classList.toggle("active",x===b));
+  updateAlbumFilter();
   render();
 });
+
+albumFilter.onchange=()=>{
+  album=albumFilter.value;
+  render();
+};
+
+sortSelect.onchange=()=>{
+  sortMode=sortSelect.value;
+  render();
+};
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,c=>({
@@ -235,11 +274,54 @@ function compressImage(file){
   });
 }
 
+function updateAlbumFilter(){
+  const albumNames=[...new Set(cards
+    .filter(c=>type==="전체"||c.type===type)
+    .map(c=>(c.album||"").trim())
+    .filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"ko"));
+
+  albumFilter.innerHTML='<option value="전체">전체 앨범</option>';
+  albumNames.forEach(name=>{
+    const o=document.createElement("option");
+    o.value=name;
+    o.textContent=name;
+    albumFilter.appendChild(o);
+  });
+
+  const hasCurrent=albumNames.includes(album);
+  if(album!=="전체"&&!hasCurrent) album="전체";
+  albumFilter.value=album;
+  albumFilterWrap.classList.toggle("show", type==="앨범" || albumNames.length>0);
+}
+
 function render(){
-  const filtered=cards.filter(c=>
+  updateAlbumFilter();
+  let filtered=cards.filter(c=>
     (member==="전체"||c.member===member) &&
-    (type==="전체"||c.type===type)
+    (type==="전체"||c.type===type) &&
+    (album==="전체"||((c.album||"").trim()===album))
   );
+
+  filtered.sort((a,b)=>{
+    if(sortMode==="release-desc" || sortMode==="release-asc"){
+      const ad=a.releaseDate||"";
+      const bd=b.releaseDate||"";
+
+      // 발매일을 입력하지 않은 포카는 날짜 정렬에서 항상 아래쪽에 표시
+      if(!ad && bd) return 1;
+      if(ad && !bd) return -1;
+      if(ad!==bd){
+        const cmp=ad.localeCompare(bd);
+        return sortMode==="release-desc" ? -cmp : cmp;
+      }
+      // 같은 발매일이면 먼저 추가한 포카가 먼저 오도록
+      return (a.createdAt||0)-(b.createdAt||0);
+    }
+
+    if(sortMode==="added-asc") return (a.createdAt||0)-(b.createdAt||0);
+    return (b.createdAt||0)-(a.createdAt||0);
+  });
 
   const total=cards.length;
   const owned=cards.filter(c=>c.owned).length;
@@ -264,8 +346,11 @@ function render(){
       </div>
       <div class="info">
         <div class="name">${escapeHtml(c.name)}</div>
-        <div class="meta">${escapeHtml(c.member)} · ${escapeHtml(c.type)}</div>
+        <div class="meta">${escapeHtml(c.member)} · ${escapeHtml(c.type)}${c.album?` · ${escapeHtml(c.album)}`:""}</div>
+        ${c.releaseDate?`<div class="meta">발매 ${escapeHtml(c.releaseDate)}</div>`:""}
         <div class="actions">
+          <button class="up">↑ 위로</button>
+          <button class="down">↓ 아래로</button>
           <button class="edit">수정</button>
           <button class="delete">삭제</button>
         </div>
@@ -280,6 +365,8 @@ function render(){
       }
     };
 
+    el.querySelector(".up").onclick=()=>moveCard(c.id,-1);
+    el.querySelector(".down").onclick=()=>moveCard(c.id,1);
     el.querySelector(".edit").onclick=()=>openModal(c);
 
     el.querySelector(".delete").onclick=async()=>{
@@ -296,6 +383,38 @@ function render(){
   });
 }
 
+async function moveCard(id, direction){
+  // 현재 화면에서 보이는 순서를 기준으로 한 칸 위/아래로 이동하고 Firebase에 저장
+  const visible=cards.filter(c=>
+    (member==="전체"||c.member===member) &&
+    (type==="전체"||c.type===type) &&
+    (album==="전체"||((c.album||"").trim()===album))
+  );
+
+  visible.sort((a,b)=>(a.sortOrder ?? a.createdAt ?? 0)-(b.sortOrder ?? b.createdAt ?? 0));
+  const index=visible.findIndex(c=>c.id===id);
+  const targetIndex=index+direction;
+  if(index<0 || targetIndex<0 || targetIndex>=visible.length) return;
+
+  const current=visible[index];
+  const target=visible[targetIndex];
+  const currentOrder=current.sortOrder ?? current.createdAt ?? Date.now();
+  const targetOrder=target.sortOrder ?? target.createdAt ?? Date.now();
+
+  try{
+    await Promise.all([
+      updateDoc(doc(db,"photocards",current.id),{sortOrder:targetOrder}),
+      updateDoc(doc(db,"photocards",target.id),{sortOrder:currentOrder})
+    ]);
+    sortMode="added-asc";
+    sortSelect.value="added-asc";
+    render();
+  }catch(err){
+    console.error(err);
+    alert("정렬 순서 저장에 실패했어요.");
+  }
+}
+
 function openModal(card=null){
   editingId=card?.id||null;
   pendingImage=card?.image||null;
@@ -305,6 +424,8 @@ function openModal(card=null){
   nameInput.value=card?.name||"";
   memberInput.value=card?.member||"마크";
   typeInput.value=card?.type||"앨범";
+  albumInput.value=card?.album||"";
+  releaseDateInput.value=card?.releaseDate||"";
   ownedInput.checked=card?.owned||false;
 
   photoInput.value="";
@@ -358,6 +479,8 @@ saveBtn.onclick=async()=>{
         name,
         member:memberInput.value,
         type:typeInput.value,
+        album:albumInput.value.trim(),
+        releaseDate:releaseDateInput.value,
         owned:ownedInput.checked,
         image:pendingImage
       });
@@ -374,9 +497,12 @@ saveBtn.onclick=async()=>{
           name:count>1?`${name} ${i+1}`:name,
           member:memberInput.value,
           type:typeInput.value,
+          album:albumInput.value.trim(),
+          releaseDate:releaseDateInput.value,
           owned:ownedInput.checked,
           image:pendingImage,
-          createdAt:Date.now()+i
+          createdAt:Date.now()+i,
+          sortOrder:Date.now()+i
         });
       }
 
@@ -400,7 +526,8 @@ modal.onclick=e=>{
 // Firebase의 photocards 컬렉션이 바뀌면 앱 화면도 자동으로 갱신
 onSnapshot(cardsRef, snapshot=>{
   cards=snapshot.docs.map(d=>({id:d.id,...d.data()}));
-  cards.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  cards.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  updateAlbumFilter();
   render();
 }, err=>{
   console.error(err);
